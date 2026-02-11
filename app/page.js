@@ -9,7 +9,7 @@ export default function UserFormPage() {
   const [hobbies, setHobbies] = useState([]);
   const [list, setList] = useState([]);
   const [records, setRecords] = useState([]);
-  
+
   useEffect(() => {
     handleGetData();
   }, []);
@@ -49,13 +49,10 @@ export default function UserFormPage() {
       return;
     }
     let newRecord = list.filter((user) =>
-      user.username.toLowerCase().includes(query.toLowerCase()),
+      user.username.toLowerCase().includes(query.toLowerCase())
     );
     setRecords(newRecord);
   }
-  console.log(list);
-  console.log(records);
-  
 
   async function handleGetData() {
     try {
@@ -78,22 +75,15 @@ export default function UserFormPage() {
     setUserData({});
   }
 
-  const customStyles = {
-    headCells: {
-      style: {
-        backgroundColor: "black",
-        color: "white",
-        paddingLeft: "16px",
-        paddingRight: "16px",
-      },
-    },
-    cells: {
-      style: {
-        paddingLeft: "16px",
-        paddingRight: "16px",
-      },
-    },
-  };
+  async function handleDelete(id){
+    try {
+      await apiInstance.delete(`/api/users/${id}`);
+      handleGetData();
+    } catch (error) {
+      console.log(error.message);
+    }
+  }
+
 
   const columns = [
     {
@@ -128,7 +118,18 @@ export default function UserFormPage() {
     {
       name: "Hobbies",
       selector: (row) => row.hobbies.join(", "),
-      wrap : true,
+      wrap: true,
+    },
+    {
+      name: "Actions",
+      selector: (row) => (
+        <div className="flex items-center gap-3">
+          <button type="button" onClick={() => handleDelete(row._id)} className="p-3 rounded-md bg-red-500 cursor-pointer text-white">
+            Delete
+          </button>
+          <button type="button" className="p-3 rounded-md bg-yellow-500 cursor-pointer">Edit</button>
+        </div>
+      ),
     },
   ];
 
@@ -307,7 +308,7 @@ export default function UserFormPage() {
           </form>
         </div>
       </div>
-      <div className="mx-auto max-w-6xl px-6 py-16">
+      <div className="mx-auto max-w-8xl px-6 py-16">
         <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-8 shadow-2xl shadow-slate-950/40">
           <div className="mb-6">
             <p className="text-sm uppercase tracking-[0.2em] text-slate-400">
@@ -327,47 +328,9 @@ export default function UserFormPage() {
           </div>
 
           <div className="overflow-x-auto rounded-xl border border-slate-800">
-            {/* <table className="min-w-full text-left text-sm">
-              <thead className="bg-slate-900 text-slate-300">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Username</th>
-                  <th className="px-4 py-3 font-medium">Email</th>
-                  <th className="px-4 py-3 font-medium">Password</th>
-                  <th className="px-4 py-3 font-medium">Gender</th>
-                  <th className="px-4 py-3 font-medium">Address</th>
-                  <th className="px-4 py-3 font-medium">Phone Number</th>
-                  <th className="px-4 py-3 font-medium">Hobbies</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800 bg-slate-950/50 text-slate-200">
-                {list.length === 0 ? (
-                  <tr>
-                    <td className="px-4 py-4 text-slate-400" colSpan={3}>
-                      No users found.
-                    </td>
-                  </tr>
-                ) : (
-                  // list.map((user, index) => {
-                  //   return (
-                  //     <tr key={user._id}>
-                  //       <td className="px-4 py-4">{index + 1}</td>
-                  //       <td className="px-4 py-4">{user.username}</td>
-                  //       <td className="px-4 py-4">{user.email}</td>
-                  //       <td className="px-4 py-4">{user.password}</td>
-                  //       <td className="px-4 py-4">{user.gender}</td>
-                  //       <td className="px-4 py-4">{user.address}</td>
-                  //       <td className="px-4 py-4">{user.phoneNumber}</td>
-                  //       <td className="px-4 py-4">{user.hobbies}</td>
-                  //     </tr>
-                  //   );
-                  // })
-                )}
-              </tbody>
-            </table> */}
             <DataTable
               columns={columns}
               data={records}
-              customStyles={customStyles}
               pagination
             />
           </div>
