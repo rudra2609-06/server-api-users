@@ -6,7 +6,6 @@ import UserModel from "@/app/models/users.model.js";
 
 export async function GET() {
   try {
-    
     const response = await UserModel.find({});
     return NextResponse.json(response);
   } catch (error) {

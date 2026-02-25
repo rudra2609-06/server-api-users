@@ -4,7 +4,6 @@ import UserModel from "@/app/models/users.model.js";
 
 export async function GET(req, { params }) {
   const { id } = await params;
-
   try {
     const response = await UserModel.findById(id);
     if (!response) return NextResponse.json({ message: "User not found" });
@@ -33,7 +32,7 @@ export async function PATCH(req, { params }) {
     const updatedUser = await UserModel.findByIdAndUpdate(
       { _id: id }, //find by _id
       { $set: body }, //only replace the available field in body
-      { new: true }, //prevents default behaviour of sending old data and send new updated data
+      { new: true } //prevents default behaviour of sending old data and send new updated data
     );
     if (!updatedUser) {
       return NextResponse.json({ message: "User not found" }, { status: 404 });
