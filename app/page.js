@@ -9,6 +9,7 @@ export default function UserFormPage() {
   const [hobbies, setHobbies] = useState([]);
   const [list, setList] = useState([]);
   const [records, setRecords] = useState([]);
+  const [error, setError] = useState({});
 
   useEffect(() => {
     handleGetData();
@@ -49,7 +50,7 @@ export default function UserFormPage() {
       return;
     }
     let newRecord = list.filter((user) =>
-      user.username.toLowerCase().includes(query.toLowerCase())
+      user.username.toLowerCase().includes(query.toLowerCase()),
     );
     setRecords(newRecord);
   }
@@ -65,8 +66,15 @@ export default function UserFormPage() {
 
   async function handlePost(e) {
     e.preventDefault();
+    if (!handleValidation(userData)) return;
     try {
-      let res = await apiInstance.post("/api/users", userData);
+      if (userData._id) {
+        // Update existing user
+        await apiInstance.patch(`/api/users/${userData._id}`, userData);
+      } else {
+        // Create new user
+        await apiInstance.post("/api/users", userData);
+      }
       handleGetData();
     } catch (error) {
       throw new Error(error.message || "unable to send post message");
@@ -75,7 +83,19 @@ export default function UserFormPage() {
     setUserData({});
   }
 
-  async function handleDelete(id){
+  async function handleEdit(user) {
+    setUserData(user);
+    setHobbies(user.hobbies || []);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function handleCancel() {
+    setUserData({});
+    setHobbies([]);
+    setError({});
+  }
+
+  async function handleDelete(id) {
     try {
       await apiInstance.delete(`/api/users/${id}`);
       handleGetData();
@@ -84,56 +104,109 @@ export default function UserFormPage() {
     }
   }
 
+  function handleValidation(data) {
+    let err = {};
+    if (!data.username) err.username = `Required Username`;
+    if (!data.email) err.email = `Required Email`;
+    if (!data.password) err.password = `Required Password`;
+    if (!data.gender) err.gender = `Required Gender`;
+    if (!data.phoneNumber) err.phoneNumber = `Required Phone Number`;
+    if (!data.address) err.address = `Required Address`;
+    if (hobbies.length === 0) err.hobbies = `Required Hobbies`;
+    setError(err);
+    console.log(err);
+
+    return Object.keys(err).length === 0;
+  }
+  console.log("error", error);
+  console.log(userData);
 
   const columns = [
     {
       name: "Sr.No",
-      cell: (row, index) => index + 1,
+      cell: (row, index) => (
+        <div className="font-semibold text-slate-100">{index + 1}</div>
+      ),
+      width: "60px",
     },
     {
       name: "Username",
       selector: (row) => row.username,
       sortable: true,
+      cell: (row) => (
+        <div className="font-semibold text-blue-400">{row.username}</div>
+      ),
     },
     {
       name: "Email",
       selector: (row) => row.email,
-    },
-    {
-      name: "Password",
-      selector: (row) => row.password,
+      cell: (row) => <div className="text-slate-300">{row.email}</div>,
     },
     {
       name: "Gender",
       selector: (row) => row.gender,
+      cell: (row) => (
+        <div className="flex items-center gap-2">
+          <span className="px-2 py-1 rounded-full text-xs font-semibold bg-slate-700 text-slate-200 capitalize">
+            {row.gender}
+          </span>
+        </div>
+      ),
+    },
+    {
+      name: "Phone",
+      selector: (row) => row.phoneNumber,
+      cell: (row) => <div className="text-slate-300">{row.phoneNumber}</div>,
     },
     {
       name: "Address",
       selector: (row) => row.address,
-    },
-    {
-      name: "Phone Number",
-      selector: (row) => row.phoneNumber,
+      cell: (row) => (
+        <div className="text-slate-300 max-w-xs truncate">{row.address}</div>
+      ),
     },
     {
       name: "Hobbies",
       selector: (row) => row.hobbies.join(", "),
-      wrap: true,
+      cell: (row) => (
+        <div className="flex flex-wrap gap-2">
+          {row.hobbies.map((hobby) => (
+            <span
+              key={hobby}
+              className="px-2 py-1 rounded-full text-xs font-medium bg-slate-800 text-slate-300"
+            >
+              {hobby}
+            </span>
+          ))}
+        </div>
+      ),
+      width: "180px",
     },
     {
       name: "Actions",
-      selector: (row) => (
-        <div className="flex items-center gap-3">
-          <button type="button" onClick={() => handleDelete(row._id)} className="p-3 rounded-md bg-red-500 cursor-pointer text-white">
+      cell: (row) => (
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => handleEdit(row)}
+            title="Edit user"
+            className="px-3 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition duration-200 transform hover:scale-105 hover:shadow-lg active:scale-95"
+          >
+            Edit
+          </button>
+          <button
+            type="button"
+            onClick={() => handleDelete(row._id)}
+            title="Delete user"
+            className="px-3 py-2 rounded-md bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition duration-200 transform hover:scale-105 hover:shadow-lg active:scale-95"
+          >
             Delete
           </button>
-          <button type="button" className="p-3 rounded-md bg-yellow-500 cursor-pointer">Edit</button>
         </div>
       ),
+      width: "160px",
     },
   ];
-
-  // const data = list;
 
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100">
@@ -144,7 +217,7 @@ export default function UserFormPage() {
               User Form
             </p>
             <h1 className="mt-3 text-3xl font-semibold text-slate-50">
-              Create a User Profile
+              {userData._id ? "Edit User Profile" : "Create a User Profile"}
             </h1>
           </div>
 
@@ -161,6 +234,9 @@ export default function UserFormPage() {
                 value={userData.username || ""}
                 placeholder="e.g. skywalker"
               />
+              {error.username && (
+                <span className="text-sm text-red-700">{error.username}</span>
+              )}
             </div>
 
             <div className="grid gap-2">
@@ -176,6 +252,9 @@ export default function UserFormPage() {
                 placeholder="name@example.com"
                 type="email"
               />
+              {error.email && (
+                <span className="text-sm text-red-700">{error.email}</span>
+              )}
             </div>
 
             <div className="grid gap-2">
@@ -191,6 +270,9 @@ export default function UserFormPage() {
                 type="password"
                 value={userData.password || ""}
               />
+              {error.password && (
+                <span className="text-sm text-red-700">{error.password}</span>
+              )}
             </div>
 
             <div className="grid gap-2">
@@ -227,6 +309,9 @@ export default function UserFormPage() {
                   Male
                 </label>
               </div>
+              {error.gender && (
+                <span className="text-sm text-red-700">{error.gender}</span>
+              )}
             </div>
 
             <div className="grid gap-2">
@@ -295,6 +380,9 @@ export default function UserFormPage() {
                 name="address"
                 placeholder="Street, city, state, zip"
               />
+              {error.hobbies && (
+                <span className="text-sm text-red-700">{error.hobbies}</span>
+              )}
             </div>
 
             <div className="flex flex-wrap gap-4 pt-2">
@@ -302,8 +390,17 @@ export default function UserFormPage() {
                 className="rounded-full bg-slate-100 px-6 py-3 text-sm font-semibold text-slate-950 transition hover:bg-white cursor-pointer"
                 type="submit"
               >
-                Save User
+                {userData._id ? "Update User" : "Save User"}
               </button>
+              {userData._id && (
+                <button
+                  onClick={handleCancel}
+                  className="rounded-full bg-slate-700 px-6 py-3 text-sm font-semibold text-slate-100 transition hover:bg-slate-600 cursor-pointer"
+                  type="button"
+                >
+                  Cancel
+                </button>
+              )}
             </div>
           </form>
         </div>
@@ -332,6 +429,82 @@ export default function UserFormPage() {
               columns={columns}
               data={records}
               pagination
+              paginationPerPage={8}
+              paginationRowsPerPageOptions={[8, 15, 20, 25]}
+              highlightOnHover
+              pointerOnHover
+              customStyles={{
+                headRow: {
+                  style: {
+                    backgroundColor: "#1e293b",
+                    borderBottomColor: "#475569",
+                    borderBottomWidth: "2px",
+                  },
+                },
+                headCells: {
+                  style: {
+                    color: "#cbd5e1",
+                    fontSize: "13px",
+                    fontWeight: "600",
+                    letterSpacing: "0.5px",
+                    paddingLeft: "16px",
+                    paddingRight: "16px",
+                    paddingTop: "12px",
+                    paddingBottom: "12px",
+                  },
+                },
+                rows: {
+                  style: {
+                    backgroundColor: "#0f172a",
+                    borderBottomColor: "#334155",
+                    minHeight: "55px",
+                    transition: "all 0.3s ease",
+                  },
+                  highlightOnHoverStyle: {
+                    backgroundColor: "#1e293b",
+                    borderBottomColor: "#475569",
+                    borderLeftColor: "#3b82f6",
+                    borderLeftWidth: "4px",
+                    paddingLeft: "12px",
+                    boxShadow: "inset 0 0 8px rgba(59, 130, 246, 0.1)",
+                    cursor: "pointer",
+                  },
+                },
+                cells: {
+                  style: {
+                    color: "#e2e8f0",
+                    paddingLeft: "16px",
+                    paddingRight: "16px",
+                    fontSize: "14px",
+                  },
+                },
+                pagination: {
+                  style: {
+                    backgroundColor: "#0f172a",
+                    color: "#cbd5e1",
+                    borderTopColor: "#334155",
+                    minHeight: "55px",
+                  },
+                  pageButtonsStyle: {
+                    backgroundColor: "#1e293b",
+                    borderColor: "#475569",
+                    color: "#cbd5e1",
+                    transition: "all 0.2s ease",
+                    "&:hover": {
+                      backgroundColor: "#334155",
+                      borderColor: "#64748b",
+                      transform: "translateY(-2px)",
+                    },
+                    "&:disabled": {
+                      backgroundColor: "#0f172a",
+                      color: "#64748b",
+                    },
+                    "&:active": {
+                      backgroundColor: "#475569",
+                    },
+                  },
+                },
+              }}
             />
           </div>
         </div>
